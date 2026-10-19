@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>個人習慣追蹤資訊主頁</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+    body { font-family: 'Noto Sans TC', sans-serif; }
+    .checkbox-bounce { transition: transform 0.15s ease-in-out; }
+    .checkbox-bounce:active { transform: scale(0.85); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen p-4 md:p-8">
+
+  <div class="max-w-6xl mx-auto space-y-6">
+    
+    <!-- 頂部標題與新增區域 -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <i data-lucide="Flame" class="text-orange-500 w-7 h-7"></i>
+          習慣養成資訊主頁
+        </h1>
+        <p class="text-slate-500 text-sm mt-1">追蹤本週每日目標，累積連續達成紀錄</p>
+      </div>
+      
+      <div class="flex gap-2">
+        <input type="text" id="newHabitInput" placeholder="輸入新習慣（例如：喝水 2000cc）..." 
+          class="px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm w-full md:w-64">
+        <button onclick="addHabit()" 
+          class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1 shrink-0">
+          <i data-lucide="plus" class="w-4 h-4"></i> 新增習慣
+        </button>
+      </div>
+    </header>
+
+    <!-- KPI 數據摘要卡片 -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+        <div>
+          <p class="text-slate-400 text-xs font-medium uppercase">今日完成進度</p>
+          <p class="text-3xl font-bold text-slate-800 mt-1" id="todayProgress">0/0</p>
+          <p class="text-xs text-emerald-600 mt-1 font-medium" id="todayRate">達成率 0%</p>
+        </div>
+        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+          <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+        <div>
+          <p class="text-slate-400 text-xs font-medium uppercase">本週總體達成率</p>
+          <p class="text-3xl font-bold text-slate-800 mt-1" id="weeklyRate">0%</p>
+          <p class="text-xs text-slate-400 mt-1" id="weeklyCount">本週累積完成 0 次</p>
+        </div>
+        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+          <i data-lucide="trending-up" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+        <div>
+          <p class="text-slate-400 text-xs font-medium uppercase">本週最高連續天數</p>
+          <p class="text-3xl font-bold text-slate-800 mt-1" id="bestStreak">0 天</p>
+          <p class="text-xs text-orange-500 mt-1 font-medium" id="bestHabitName">尚無紀錄</p>
+        </div>
+        <div class="w-12 h-12 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center">
+          <i data-lucide="zap" class="w-6 h-6"></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- 每日打卡矩陣表格 -->
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+        <h2 class="font-bold text-lg text-slate-800">本週每日打卡記錄</h2>
+        <button onclick="resetData()" class="text-xs text-slate-400 hover:text-red-500 transition flex items-center gap-1">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 重置預設資料
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-100 text-slate-400 text-xs uppercase bg-slate-50/50">
+              <th class="py-3.5 px-6 font-medium">習慣項目</th>
+              <th class="py-3.5 px-3 text-center">週一</th>
+              <th class="py-3.5 px-3 text-center">週二</th>
+              <th class="py-3.5 px-3 text-center">週三</th>
+              <th class="py-3.5 px-3 text-center">週四</th>
+              <th class="py-3.5 px-3 text-center">週五</th>
+              <th class="py-3.5 px-3 text-center">週六</th>
+              <th class="py-3.5 px-3 text-center">週日</th>
+              <th class="py-3.5 px-6 text-center">連續紀錄</th>
+              <th class="py-3.5 px-4 text-right">操作</th>
+            </tr>
+          </thead>
+          <tbody id="habitTableBody" class="divide-y divide-slate-100 text-sm">
+            <!-- 由 JavaScript 動態渲染 -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 圖表視覺化區域 -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- 圖表 1：每日完成趨勢 -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <i data-lucide="bar-chart-2" class="w-5 h-5 text-indigo-500"></i>
+          每日目標完成數量（週一至週日）
+        </h3>
+        <div class="h-64">
+          <canvas id="dailyChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 圖表 2：各習慣連續天數排行 -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <i data-lucide="award" class="w-5 h-5 text-orange-500"></i>
+          各習慣連續天數與本週總計對比
+        </h3>
+        <div class="h-64">
+          <canvas id="streakChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    const days = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+    // 預設取得今天是星期幾 (0=週一 ... 6=週日)
+    const todayIndex = (new Date().getDay() + 6) % 7;
+
+    const defaultHabits = [
+      { id: 1, name: '晨間閱讀 30 分鐘', history: [true, true, true, true, false, true, false] },
+      { id: 2, name: '有氧運動 / 超慢跑', history: [true, false, true, true, true, false, false] },
+      { id: 3, name: '飲水達 2000ml', history: [true, true, true, true, true, true, false] },
+      { id: 4, name: '睡前遠離手機', history: [false, true, true, false, true, false, false] }
+    ];
+
+    let habits = JSON.parse(localStorage.getItem('habits_data')) || defaultHabits;
+    let dailyChartInstance = null;
+    let streakChartInstance = null;
+
+    // 計算單一習慣的最高連續天數與當前連續天數
+    function calculateStreak(history) {
+      let currentStreak = 0;
+      let maxStreak = 0;
+      for (let completed of history) {
+        if (completed) {
+          currentStreak++;
+          if (currentStreak > maxStreak) maxStreak = currentStreak;
+        } else {
+          currentStreak = 0;
+        }
+      }
+      return maxStreak;
+    }
+
+    // 儲存並更新畫面
+    function saveAndRender() {
+      localStorage.setItem('habits_data', JSON.stringify(habits));
+      renderTable();
+      updateKPIs();
+      updateCharts();
+      lucide.createIcons();
+    }
+
+    // 渲染打卡表格
+    function renderTable() {
+      const tbody = document.getElementById('habitTableBody');
+      tbody.innerHTML = '';
+
+      habits.forEach((habit, hIndex) => {
+        const streak = calculateStreak(habit.history);
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/80 transition';
+
+        let checkboxesHtml = '';
+        habit.history.forEach((done, dIndex) => {
+          const isToday = dIndex === todayIndex;
+          checkboxesHtml += `
+            <td class="py-3.5 px-3 text-center ${isToday ? 'bg-indigo-50/40' : ''}">
+              <button onclick="toggleDay(${hIndex}, ${dIndex})" 
+                class="checkbox-bounce w-8 h-8 rounded-lg inline-flex items-center justify-center transition border ${
+                  done 
+                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-200' 
+                    : 'bg-white border-slate-200 text-transparent hover:border-indigo-300'
+                }">
+                <i data-lucide="check" class="w-4 h-4"></i>
+              </button>
+            </td>
+          `;
+        });
+
+        tr.innerHTML = `
+          <td class="py-3.5 px-6 font-medium text-slate-800">${habit.name}</td>
+          ${checkboxesHtml}
+          <td class="py-3.5 px-6 text-center">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+              streak >= 3 ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-600'
+            }">
+              🔥 ${streak} 天
+            </span>
+          </td>
+          <td class="py-3.5 px-4 text-right">
+            <button onclick="deleteHabit(${hIndex})" class="text-slate-300 hover:text-red-500 transition p-1">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 更新頂部數據卡片
+    function updateKPIs() {
+      const totalHabits = habits.length;
+      const completedToday = habits.filter(h => h.history[todayIndex]).length;
+      const todayPercent = totalHabits ? Math.round((completedToday / totalHabits) * 100) : 0;
+
+      document.getElementById('todayProgress').innerText = `${completedToday} / ${totalHabits}`;
+      document.getElementById('todayRate').innerText = `今日達成率 ${todayPercent}% (${days[todayIndex]})`;
+
+      let totalChecks = 0;
+      let bestStreak = 0;
+      let bestHabit = '尚無紀錄';
+
+      habits.forEach(h => {
+        const count = h.history.filter(Boolean).length;
+        totalChecks += count;
+        const s = calculateStreak(h.history);
+        if (s > bestStreak) {
+          bestStreak = s;
+          bestHabit = h.name;
+        }
+      });
+
+      const totalPossible = totalHabits * 7;
+      const weeklyPercent = totalPossible ? Math.round((totalChecks / totalPossible) * 100) : 0;
+
+      document.getElementById('weeklyRate').innerText = `${weeklyPercent}%`;
+      document.getElementById('weeklyCount').innerText = `本週累積完成 ${totalChecks} 次`;
+      document.getElementById('bestStreak').innerText = `${bestStreak} 天`;
+      document.getElementById('bestHabitName').innerText = bestHabit;
+    }
+
+    // 更新雙圖表
+    function updateCharts() {
+      // 1. 計算每日完成數 (週一 ~ 週日)
+      const dailyCounts = days.map((_, dIndex) => 
+        habits.reduce((sum, h) => sum + (h.history[dIndex] ? 1 : 0), 0)
+      );
+
+      // 2. 計算各習慣連續天數與總天數
+      const habitNames = habits.map(h => h.name);
+      const streakData = habits.map(h => calculateStreak(h.history));
+      const totalData = habits.map(h => h.history.filter(Boolean).length);
+
+      // 繪製每日趨勢圖
+      const ctxDaily = document.getElementById('dailyChart').getContext('2d');
+      if (dailyChartInstance) dailyChartInstance.destroy();
+      dailyChartInstance = new Chart(ctxDaily, {
+        type: 'bar',
+        data: {
+          labels: days,
+          datasets: [{
+            label: '完成習慣數',
+            data: dailyCounts,
+            backgroundColor: days.map((_, i) => i === todayIndex ? '#4f46e5' : '#cbd5e1'),
+            borderRadius: 8,
+            barThickness: 28
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, max: Math.max(habits.length, 5), ticks: { stepSize: 1 } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      // 繪製連續紀錄對比圖
+      const ctxStreak = document.getElementById('streakChart').getContext('2d');
+      if (streakChartInstance) streakChartInstance.destroy();
+      streakChartInstance = new Chart(ctxStreak, {
+        type: 'bar',
+        data: {
+          labels: habitNames,
+          datasets: [
+            {
+              label: '最高連續天數 (Streak)',
+              data: streakData,
+              backgroundColor: '#f97316',
+              borderRadius: 6
+            },
+            {
+              label: '本週累積天數',
+              data: totalData,
+              backgroundColor: '#e2e8f0',
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { beginAtZero: true, max: 7, ticks: { stepSize: 1 } }
+          },
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    // 互動事件：切換打卡狀態
+    function toggleDay(habitIndex, dayIndex) {
+      habits[habitIndex].history[dayIndex] = !habits[habitIndex].history[dayIndex];
+      saveAndRender();
+    }
+
+    // 互動事件：新增習慣
+    function addHabit() {
+      const input = document.getElementById('newHabitInput');
+      const name = input.value.trim();
+      if (!name) return;
+      habits.push({
+        id: Date.now(),
+        name: name,
+        history: [false, false, false, false, false, false, false]
+      });
+      input.value = '';
+      saveAndRender();
+    }
+
+    // 互動事件：刪除習慣
+    function deleteHabit(index) {
+      habits.splice(index, 1);
+      saveAndRender();
+    }
+
+    // 互動事件：重置預設資料
+    function resetData() {
+      localStorage.removeItem('habits_data');
+      habits = JSON.parse(JSON.stringify(defaultHabits));
+      saveAndRender();
+    }
+
+    // 支援按 Enter 新增習慣
+    document.getElementById('newHabitInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') addHabit();
+    });
+
+    // 初始化啟動
+    saveAndRender();
+  </script>
+</body>
+</html>
